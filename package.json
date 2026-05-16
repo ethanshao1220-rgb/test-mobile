@@ -1,0 +1,1 @@
+{"scripts":{"dev":"python3 server/app.py","start":"python3 server/app.py"},"dependencies":{},"devDependencies":{}}
