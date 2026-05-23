@@ -408,16 +408,65 @@ Previously verified directions include:
 - dependency alignment to Expo SDK 54
 - Expo Router entry fix
 - mobile UI restored toward old black-white style
+- repository quality checks executed successfully after Node/npm became available:
+  - `npm run mobile:lint`
+  - `npm run mobile:format:check`
+  - `npm run mobile:typecheck`
+  - `npm run mobile:test`
+  - `npm run check`
 
-Recommended baseline checks before new feature work:
+## 12. Recent Collaboration Baseline
+
+This section records stable collaboration outcomes from the latest repository unification pass.
+
+### 12.1 Document split baseline
+
+Current expected document responsibilities are:
+
+- PRD only: `VibeCoding-饮食管理软件开发文档.md`
+- rules only: `.cursor/rules/mobile-first-diet-tracker.mdc`
+- project facts / handoff memory only: `.cursor/PROJECT_MEMORY.md`
+- runbook / operational commands only: `README.md`
+- engineering workflow / quality entrypoints only: `ENGINEERING_WORKFLOW.md`
+
+Future sessions should preserve this split and avoid merging these roles back together.
+
+### 12.2 Repository quality baseline
+
+The repository now has an explicit quality gate baseline for the active stack:
+
+- backend lint / format check / tests
+- mobile lint / format check / typecheck / tests
+- repository-level `npm run check`
+- GitHub Actions workflow at `.github/workflows/quality.yml`
+- local pre-commit gate at `scripts/pre-commit.sh`
+
+Boundary decision kept in force:
+
+- `mobile/` and `backend/` are under enforced checks
+- old Web MVP paths `public/`, `server/`, and root `index.html` remain outside automatic formatting scope during migration
+
+### 12.3 Git and collaboration baseline
+
+Current repository collaboration facts:
+
+- local git repository has been initialized for this project
+- GitHub remote is already connected
+- the current branch is `main`
+- prior session history already includes the initial import commit and the repository standardization commit
+
+### 12.4 Current recommended starting checks
+
+Before continuing feature work in future sessions, prefer this baseline order:
 
 ```bash
 npm run backend:test
 npm run backend:dev
 npm run mobile:dev
+npm run check
 ```
 
-## 12. Current Collaboration Guidance
+## 13. Current Collaboration Guidance
 
 When continuing work, clarify these first:
 
@@ -433,7 +482,7 @@ Preferred implementation order when uncertainty appears:
 4. improve offline reliability
 5. then expand secondary features
 
-## 13. Memory Maintenance Rules
+## 14. Memory Maintenance Rules
 
 When updating this file in future sessions:
 
@@ -444,7 +493,7 @@ When updating this file in future sessions:
 - keep product requirements in PRD, not here
 - keep engineering constraints in `.mdc`, not here
 
-## 14. Handoff Template
+## 15. Handoff Template
 
 When handing work to another agent, include:
 
