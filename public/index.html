@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>健身饮食管理</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0b0b0c" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">F</div>
+          <div>
+            <strong>FitDiet</strong>
+            <span>增肌减脂饮食助手</span>
+          </div>
+        </div>
+        <nav class="nav-tabs" aria-label="主导航">
+          <button class="nav-tab active" data-tab="today">今天</button>
+          <button class="nav-tab" data-tab="plan">计划</button>
+          <button class="nav-tab" data-tab="mood">心情</button>
+          <button class="nav-tab" data-tab="profile">我的</button>
+          <button id="quickAddTab" class="nav-tab quick-add-tab" type="button" aria-label="快速记录">+</button>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">今日饮食执行</p>
+            <h1 id="pageTitle">今天</h1>
+          </div>
+          <input id="globalDate" class="date-input" type="date" />
+        </header>
+
+        <section id="todayPage" class="page active">
+          <div class="dashboard-grid today-grid">
+            <article id="checkinCard" class="card checkin-card" tabindex="0" role="button" aria-label="今日打卡状态">
+              <div class="checkin-flip-inner">
+                <div class="checkin-face checkin-face-front">
+                  <div class="checkin-copy">
+                    <span id="checkinKicker">今日打卡</span>
+                    <h2 id="checkinTitle">今天还没记录</h2>
+                    <p id="checkinText">先记一餐，完成今日饮食打卡。</p>
+                  </div>
+                  <button id="quickRecordFromToday" class="primary-btn">去记一餐</button>
+                </div>
+                <div class="checkin-face checkin-face-back">
+                  <div class="checkin-copy">
+                    <span>今日鼓励</span>
+                    <h2 id="checkinMotivationTitle">打卡完成</h2>
+                    <p id="checkinMotivationText">记录不是约束，是帮你稳定靠近目标。</p>
+                  </div>
+                  <p class="flip-hint">点击切回打卡状态</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="card calorie-gauge-card">
+              <div class="card-header">
+                <span>还可以吃</span>
+                <strong id="goalTypeBadge">减脂</strong>
+              </div>
+              <div class="calorie-gauge">
+                <span id="calorieRemaining">0</span>
+              </div>
+              <p id="calorieGaugeHint" class="gauge-hint">剩余热量 kcal</p>
+              <div class="compact-calorie-line">
+                <span>已吃 <strong id="calorieConsumed">0</strong></span>
+                <span>目标 <strong id="calorieTarget">0</strong></span>
+              </div>
+              <div class="progress"><span id="calorieProgress"></span></div>
+            </article>
+
+            <article class="card macro-bars-card">
+              <div class="card-header"><span>三大营养素</span><strong id="completionRate">0%</strong></div>
+              <div id="macroBars" class="macro-bars"></div>
+            </article>
+
+            <article class="card log-card">
+              <div class="card-header"><span>今日已记录食物</span><strong>明细</strong></div>
+              <div id="foodLogs" class="food-logs"></div>
+            </article>
+
+            <article class="card advice-card">
+              <div class="card-header"><span>今日建议</span><strong>Advice</strong></div>
+              <ul id="adviceList" class="advice-list"></ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="planPage" class="page">
+          <div class="plan-grid">
+            <article class="card weekly-entry">
+              <div class="card-header"><span>周报复盘</span><strong id="weekRange">本周</strong></div>
+              <p id="weeklySummary">暂无周报摘要</p>
+              <button id="refreshWeekly" class="primary-btn">刷新周报</button>
+            </article>
+
+            <article class="card hero-card">
+              <div class="card-header"><span>本周 vs 上周</span><strong id="weeklyDateRange">本周</strong></div>
+              <div class="compare-grid">
+                <div><span>本周完成度</span><strong id="currentWeekRate">0%</strong></div>
+                <div><span>上周完成度</span><strong id="previousWeekRate">0%</strong></div>
+                <div><span>完成度变化</span><strong id="weekRateDiff">0%</strong></div>
+                <div><span>本周体重变化</span><strong id="currentWeightDiff">0kg</strong></div>
+              </div>
+            </article>
+
+            <article class="card">
+              <div class="card-header"><span>目标设置</span><strong>Goal</strong></div>
+              <label>当前目标<select id="goalType"><option value="fat_loss">减脂</option><option value="muscle_gain">增肌</option></select></label>
+              <div class="target-grid">
+                <label>热量<input id="targetCalories" type="number" /></label>
+                <label>蛋白 g<input id="targetProtein" type="number" /></label>
+                <label>碳水 g<input id="targetCarb" type="number" /></label>
+                <label>脂肪 g<input id="targetFat" type="number" /></label>
+              </div>
+              <div class="button-row">
+                <button id="recalculateGoal" class="secondary-btn">重新计算</button>
+                <button id="saveGoal" class="primary-btn">保存目标</button>
+              </div>
+            </article>
+
+            <article class="card">
+              <h3 id="weeklyTitle">周报摘要</h3>
+              <p id="weeklyText"></p>
+            </article>
+
+            <article class="card">
+              <div class="card-header"><span>每日表现</span><strong>7 days</strong></div>
+              <div id="dailyBreakdown" class="daily-breakdown"></div>
+            </article>
+
+            <article class="card">
+              <div class="card-header"><span>下周建议</span><strong>Next</strong></div>
+              <ul id="weeklyAdvice" class="advice-list"></ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="moodPage" class="page">
+          <div class="mood-grid">
+            <article class="card hero-card mood-quote-card">
+              <div class="card-header"><span>今日鼓励</span><strong>Mindset</strong></div>
+              <h2 id="moodQuote">先照顾好今天的自己。</h2>
+              <button id="refreshMoodQuote" class="secondary-btn">换一句</button>
+            </article>
+
+            <article class="card">
+              <div class="card-header"><span>今日状态</span><strong id="moodDateLabel">今日</strong></div>
+              <div class="mood-options" role="group" aria-label="今日状态">
+                <button class="mood-option" data-mood="很好">很好</button>
+                <button class="mood-option" data-mood="还可以">还可以</button>
+                <button class="mood-option" data-mood="有压力">有压力</button>
+                <button class="mood-option" data-mood="想放弃">想放弃</button>
+              </div>
+            </article>
+
+            <article class="card mood-note-card">
+              <div class="card-header"><span>日记</span><strong>Local</strong></div>
+              <label>写下今天的感受<textarea id="moodNote" rows="8" placeholder="比如今天为什么吃多了、哪里做得不错、明天想怎么调整。"></textarea></label>
+              <p id="moodSaveHint" class="hint">心情和日记会保存在当前浏览器。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="profilePage" class="page">
+          <div class="profile-grid">
+            <article class="card">
+              <div class="card-header"><span>基础资料</span><strong>Profile</strong></div>
+              <label>昵称<input id="nickname" /></label>
+              <label>性别<select id="gender"><option value="male">男</option><option value="female">女</option></select></label>
+              <label>年龄<input id="age" type="number" /></label>
+              <button id="saveProfile" class="primary-btn">保存资料</button>
+            </article>
+
+            <article class="card">
+              <div class="card-header"><span>身体信息</span><strong>Body</strong></div>
+              <label>身高 cm<input id="heightCm" type="number" /></label>
+              <label>当前体重 kg<input id="weightKg" type="number" step="0.1" /></label>
+              <button id="saveWeight" class="secondary-btn">记录今日体重</button>
+            </article>
+
+            <article class="card">
+              <div class="card-header"><span>软件设置</span><strong>Settings</strong></div>
+              <label class="check-label"><input id="reminderEnabled" type="checkbox" /> 开启提醒</label>
+              <label>主题<select id="themeMode"><option value="light">浅色</option><option value="dark">深色</option></select></label>
+              <button id="saveSettings" class="primary-btn">保存设置</button>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <section id="foodSearchOverlay" class="food-search-overlay" aria-hidden="true">
+      <div class="overlay-topbar">
+        <button id="closeFoodSearch" class="text-btn">← 返回</button>
+        <strong>记一餐</strong>
+      </div>
+      <div class="overlay-content">
+        <div class="search-row mobile-search-row">
+          <input id="foodKeyword" placeholder="搜索食物，如 鸡胸肉、燕麦" />
+          <button id="searchFood" class="primary-btn">搜索</button>
+        </div>
+        <div id="foodResults" class="food-results"></div>
+        <div class="overlay-add-bar">
+          <select id="mealType">
+            <option value="breakfast">早餐</option>
+            <option value="lunch">午餐</option>
+            <option value="dinner">晚餐</option>
+            <option value="snack">加餐</option>
+          </select>
+          <input id="foodAmount" type="number" min="1" value="100" placeholder="重量/份数" />
+          <button id="addFoodLog" class="primary-btn" disabled>添加</button>
+        </div>
+        <p id="selectedFoodHint" class="hint">请选择一个食物后添加。</p>
+      </div>
+    </section>
+
+    <div id="toast" class="toast"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

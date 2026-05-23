@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+backend/.venv/
+
+# Node / Expo
+node_modules/
+mobile/.expo/
+expo-env.d.ts
+
+# Local env
+.env
+mobile/.env
+
+# Local databases
+backend/app.db
+server/data/app.db
+
+# Local tooling
+.superpowers/
+.tools/

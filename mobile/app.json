@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "FitDiet Mobile",
+    "slug": "fitdiet-mobile",
+    "scheme": "fitdiet",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

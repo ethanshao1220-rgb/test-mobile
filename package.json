@@ -1,0 +1,1 @@
+{"scripts":{"dev":"python3 server/app.py","start":"python3 server/app.py","backend:dev":"uvicorn app.main:app --reload --app-dir backend","backend:test":"python3 -m pytest","mobile:dev":"npm --prefix mobile run dev","mobile:ios":"npm --prefix mobile run ios","mobile:android":"npm --prefix mobile run android"},"dependencies":{},"devDependencies":{}}

@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FitDiet iOS UI Preview</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #0a0a0a;
+        --muted: #666666;
+        --line: rgba(0, 0, 0, 0.1);
+        --black: #0b0b0c;
+        --dark: #1c1c1e;
+        --mid: #8e8e93;
+        --soft: #f2f2f7;
+        --white: #ffffff;
+        --glass: rgba(255, 255, 255, 0.7);
+        --shadow: 18px 22px 54px rgba(0, 0, 0, 0.18), -10px -10px 30px rgba(255, 255, 255, 0.9);
+        --pressed: inset 8px 8px 18px rgba(0, 0, 0, 0.12), inset -8px -8px 18px rgba(255, 255, 255, 0.92);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 18% 12%, rgba(0, 0, 0, 0.08), transparent 34%),
+          radial-gradient(circle at 85% 8%, rgba(255, 255, 255, 0.82), transparent 30%),
+          radial-gradient(circle at 78% 82%, rgba(0, 0, 0, 0.07), transparent 30%),
+          linear-gradient(145deg, #ffffff 0%, #f4f4f6 44%, #d9d9de 100%);
+      }
+
+      .stage {
+        width: min(1240px, calc(100vw - 40px));
+        margin: 0 auto;
+        padding: 44px 0 56px;
+      }
+
+      .hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 32px;
+        margin-bottom: 30px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 12px;
+        padding: 8px 12px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        color: var(--black);
+        background: linear-gradient(145deg, #ffffff, #ececf0);
+        box-shadow: 10px 12px 26px rgba(0, 0, 0, 0.12), -8px -8px 18px rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(22px);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      h1 {
+        max-width: 740px;
+        margin: 0;
+        font-size: clamp(40px, 5vw, 76px);
+        line-height: 0.94;
+        letter-spacing: -0.06em;
+      }
+
+      .hero p {
+        max-width: 380px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.55;
+      }
+
+      .preview-grid {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 28px;
+        align-items: start;
+      }
+
+      .phone {
+        position: sticky;
+        top: 30px;
+        width: 390px;
+        height: 844px;
+        margin: 0 auto;
+        padding: 14px;
+        border-radius: 58px;
+        background: linear-gradient(145deg, #2a2a2d, #030304);
+        box-shadow: 0 34px 100px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255,255,255,.18);
+      }
+
+      .screen {
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 46px;
+        background:
+          radial-gradient(circle at 28% 8%, rgba(0, 0, 0, 0.06), transparent 35%),
+          linear-gradient(145deg, #ffffff 0%, #f5f5f7 48%, #e6e6eb 100%);
+      }
+
+      .dynamic-island {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        z-index: 10;
+        width: 118px;
+        height: 34px;
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: #050608;
+      }
+
+      .statusbar {
+        display: flex;
+        justify-content: space-between;
+        padding: 17px 28px 0;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .app {
+        height: calc(100% - 18px);
+        padding: 42px 18px 18px;
+        overflow: hidden;
+      }
+
+      .top-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+
+      .avatar {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        color: #fff;
+        background: linear-gradient(145deg, #1c1c1e, #050505);
+        box-shadow: 10px 12px 24px rgba(0, 0, 0, 0.24), -5px -5px 14px rgba(255, 255, 255, 0.9), inset 0 1px 0 rgba(255,255,255,.28);
+        font-weight: 800;
+      }
+
+      .icon-button {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        border-radius: 18px;
+        background: linear-gradient(145deg, rgba(255,255,255,.95), rgba(228,228,232,.82));
+        backdrop-filter: blur(20px);
+        box-shadow: 9px 10px 22px rgba(0, 0, 0, 0.14), -6px -6px 16px rgba(255, 255, 255, 0.96), inset 0 1px 0 rgba(255,255,255,.95);
+      }
+
+      .title-block p {
+        margin: 0 0 4px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .title-block h2 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1;
+        letter-spacing: -0.05em;
+      }
+
+      .glass-card {
+        border: 1px solid rgba(255, 255, 255, 0.86);
+        border-radius: 30px;
+        background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(232,232,236,.72));
+        backdrop-filter: blur(26px) saturate(1.15);
+        box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.95);
+      }
+
+      .summary-card {
+        position: relative;
+        margin: 22px 0 14px;
+        padding: 20px;
+        overflow: hidden;
+        color: #fff;
+        background: linear-gradient(145deg, #2b2b2d 0%, #111113 58%, #000000 100%);
+        border: 1px solid rgba(255,255,255,.18);
+        box-shadow: 18px 24px 46px rgba(0,0,0,.28), -8px -8px 18px rgba(255,255,255,.88), inset 0 1px 0 rgba(255,255,255,.26);
+      }
+
+      .summary-card::after {
+        content: "";
+        position: absolute;
+        right: -42px;
+        top: -36px;
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      .summary-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 22px;
+      }
+
+      .pill {
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.22);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .summary-card h3 {
+        margin: 0;
+        font-size: 40px;
+        letter-spacing: -0.05em;
+      }
+
+      .summary-card p {
+        margin: 6px 0 0;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 14px;
+      }
+
+      .rings {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .ring-item {
+        padding: 12px 8px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255,255,255,.2);
+        box-shadow: inset 4px 4px 12px rgba(0,0,0,.22), inset -4px -4px 12px rgba(255,255,255,.12);
+        text-align: center;
+      }
+
+      .ring {
+        width: 58px;
+        height: 58px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 8px;
+        border-radius: 50%;
+        background: conic-gradient(#fff var(--v), rgba(255,255,255,.25) 0);
+      }
+
+      .ring span {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(20, 20, 26, 0.2);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 18px 0 10px;
+      }
+
+      .section-head h3 {
+        margin: 0;
+        font-size: 20px;
+        letter-spacing: -0.03em;
+      }
+
+      .section-head a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        min-height: 32px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        color: var(--black);
+        background: linear-gradient(145deg, #ffffff, #e4e4e8);
+        box-shadow: 7px 8px 18px rgba(0,0,0,.14), -5px -5px 14px rgba(255,255,255,.95), inset 0 1px 0 rgba(255,255,255,.95);
+        font-size: 13px;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .meal-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .meal-card {
+        display: grid;
+        grid-template-columns: 48px 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 24px;
+        background: linear-gradient(145deg, #ffffff, #ececf0);
+        border: 1px solid rgba(255,255,255,.9);
+        box-shadow: 11px 13px 26px rgba(0, 0, 0, 0.13), -7px -7px 18px rgba(255, 255, 255, 0.96), inset 0 1px 0 rgba(255,255,255,.95);
+      }
+
+      .meal-icon {
+        width: 48px;
+        height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        font-size: 22px;
+        background: linear-gradient(145deg, #fefefe, #dedee3);
+        box-shadow: var(--pressed);
+      }
+
+      .meal-card strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 15px;
+      }
+
+      .meal-card span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .kcal {
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .insight-card {
+        margin-top: 12px;
+        padding: 16px;
+      }
+
+      .insight-card h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .insight-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .tabbar {
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        bottom: 16px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        padding: 8px;
+        border: 1px solid rgba(255,255,255,.88);
+        border-radius: 28px;
+        background: linear-gradient(145deg, rgba(255,255,255,.88), rgba(224,224,229,.76));
+        backdrop-filter: blur(28px) saturate(1.12);
+        box-shadow: 14px 18px 42px rgba(0, 0, 0, 0.18), -8px -8px 22px rgba(255,255,255,.94), inset 0 1px 0 rgba(255,255,255,.96);
+      }
+
+      .tab {
+        display: grid;
+        place-items: center;
+        gap: 2px;
+        padding: 7px 0;
+        color: #98a2b3;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .tab.active {
+        color: var(--black);
+      }
+
+      .tab b { font-size: 20px; line-height: 1; }
+
+      .showcase {
+        display: grid;
+        gap: 22px;
+      }
+
+      .panel {
+        padding: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.86);
+        border-radius: 34px;
+        background: linear-gradient(145deg, rgba(255,255,255,.86), rgba(229,229,233,.72));
+        backdrop-filter: blur(28px) saturate(1.12);
+        box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.96);
+      }
+
+      .panel h2 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        letter-spacing: -0.04em;
+      }
+
+      .panel > p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .component-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .mini-card {
+        min-height: 142px;
+        padding: 18px;
+        border-radius: 26px;
+        background: linear-gradient(145deg, #ffffff, #e7e7eb);
+        border: 1px solid rgba(255,255,255,.92);
+        box-shadow: 14px 17px 34px rgba(0, 0, 0, 0.14), -8px -8px 20px rgba(255,255,255,.96), inset 0 1px 0 rgba(255,255,255,.98);
+      }
+
+      .mini-card .symbol {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 14px;
+        border-radius: 16px;
+        color: #fff;
+        background: linear-gradient(145deg, #2a2a2c, #050505);
+        box-shadow: 8px 9px 18px rgba(0,0,0,.22), -5px -5px 14px rgba(255,255,255,.9), inset 0 1px 0 rgba(255,255,255,.24);
+        font-size: 22px;
+      }
+
+      .mini-card:nth-child(2) .symbol { background: linear-gradient(145deg, #5a5a5f, #111); }
+      .mini-card:nth-child(3) .symbol { background: linear-gradient(145deg, #f7f7f8, #b8b8be); color: #111; }
+      .mini-card:nth-child(4) .symbol { background: linear-gradient(145deg, #111, #5c5c62); }
+
+      .mini-card strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 16px;
+      }
+
+      .mini-card span {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .palette {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+      }
+
+      .swatch {
+        min-height: 116px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        border-radius: 24px;
+        color: #fff;
+        box-shadow: 12px 15px 30px rgba(0, 0, 0, 0.18), -7px -7px 18px rgba(255,255,255,.88), inset 0 1px 0 rgba(255,255,255,.32);
+      }
+
+      .swatch strong { font-size: 14px; }
+      .swatch span { opacity: .8; font-size: 12px; }
+
+      .screen-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+
+      .mini-screen {
+        min-height: 260px;
+        padding: 14px;
+        border-radius: 28px;
+        background: linear-gradient(145deg, #eeeeef, #d9d9de);
+        box-shadow: var(--pressed);
+      }
+
+      .mini-screen h4 {
+        margin: 0 0 12px;
+        font-size: 15px;
+      }
+
+      .bar {
+        height: 12px;
+        margin-bottom: 8px;
+        border-radius: 999px;
+        background: linear-gradient(145deg, #ffffff, #ededf0);
+        box-shadow: 9px 10px 20px rgba(0,0,0,.12), -6px -6px 14px rgba(255,255,255,.88);
+      }
+
+      .large-block {
+        height: 86px;
+        margin-bottom: 10px;
+        border-radius: 22px;
+        background: linear-gradient(145deg, #1f1f21, #050505);
+        box-shadow: 8px 10px 20px rgba(0,0,0,.24), -5px -5px 14px rgba(255,255,255,.72);
+      }
+
+      .small-block {
+        height: 54px;
+        margin-bottom: 10px;
+        border-radius: 20px;
+        background: linear-gradient(145deg, #ffffff, #e9e9ee);
+        box-shadow: 9px 11px 22px rgba(0,0,0,.12), -6px -6px 16px rgba(255,255,255,.92);
+      }
+
+      @media (max-width: 980px) {
+        .hero { align-items: flex-start; flex-direction: column; }
+        .preview-grid { grid-template-columns: 1fr; }
+        .phone { position: relative; top: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">iOS App UI Preview · FitDiet</p>
+          <h1>极简、通透、像原生 iPhone 应用的饮食管理界面</h1>
+        </div>
+        <p>当前效果图聚焦首页仪表盘：黑白极简界面、毛玻璃卡片、强立体按钮、凸起卡片、柔和阴影与 SF Pro 排版。</p>
+      </section>
+
+      <section class="preview-grid">
+        <div class="phone" aria-label="iPhone 效果图">
+          <div class="screen">
+            <div class="dynamic-island"></div>
+            <div class="statusbar"><span>9:41</span><span>5G 100%</span></div>
+            <div class="app">
+              <div class="top-row">
+                <div class="avatar">F</div>
+                <div class="icon-button">⌁</div>
+              </div>
+
+              <div class="title-block">
+                <p>今天 · 减脂计划</p>
+                <h2>饮食概览</h2>
+              </div>
+
+              <article class="glass-card summary-card">
+                <div class="summary-top">
+                  <span class="pill">目标范围内</span>
+                  <span class="pill">82%</span>
+                </div>
+                <h3>1,486 kcal</h3>
+                <p>剩余 414 kcal · 蛋白质还差 28g</p>
+                <div class="rings">
+                  <div class="ring-item"><div class="ring" style="--v: 78%"><span>78</span></div><span>蛋白</span></div>
+                  <div class="ring-item"><div class="ring" style="--v: 64%"><span>64</span></div><span>碳水</span></div>
+                  <div class="ring-item"><div class="ring" style="--v: 52%"><span>52</span></div><span>脂肪</span></div>
+                </div>
+              </article>
+
+              <div class="section-head"><h3>今日记录</h3><a href="#">添加</a></div>
+              <div class="meal-list">
+                <div class="meal-card"><div class="meal-icon">🥣</div><div><strong>燕麦酸奶碗</strong><span>早餐 · 08:20</span></div><div class="kcal">362</div></div>
+                <div class="meal-card"><div class="meal-icon">🍗</div><div><strong>鸡胸肉能量餐</strong><span>午餐 · 12:36</span></div><div class="kcal">568</div></div>
+                <div class="meal-card"><div class="meal-icon">🥑</div><div><strong>牛油果沙拉</strong><span>加餐 · 16:10</span></div><div class="kcal">214</div></div>
+              </div>
+
+              <article class="glass-card insight-card">
+                <h3>智能建议</h3>
+                <p>晚餐优先选择高蛋白、低油脂食物，补齐蛋白质目标并保持热量余量。</p>
+              </article>
+
+              <nav class="tabbar">
+                <div class="tab active"><b>◉</b><span>数据</span></div>
+                <div class="tab"><b>＋</b><span>记录</span></div>
+                <div class="tab"><b>▤</b><span>周报</span></div>
+                <div class="tab"><b>☺</b><span>我的</span></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+
+        <div class="showcase">
+          <article class="panel">
+            <h2>视觉系统</h2>
+            <p>整体基于 iOS Human Interface 风格：大标题、低密度信息、半透明材质、48px 以上触控区域，卡片层级通过凸起阴影、内阴影和毛玻璃模糊建立。</p>
+            <div class="component-grid">
+              <div class="mini-card"><div class="symbol">⌁</div><strong>毛玻璃容器</strong><span>用于导航、建议、浮层和高频操作区，保持轻盈通透。</span></div>
+              <div class="mini-card"><div class="symbol">✓</div><strong>黑白状态表达</strong><span>用黑、白、灰阶和阴影深浅表达优先级，避免彩色干扰。</span></div>
+              <div class="mini-card"><div class="symbol">◎</div><strong>营养圆环</strong><span>用 Activity Ring 的直觉表达蛋白、碳水、脂肪完成度。</span></div>
+              <div class="mini-card"><div class="symbol">✦</div><strong>高保真图标感</strong><span>使用圆角符号容器承载功能，后续可替换为 SF Symbols。</span></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <h2>黑白层次方案</h2>
+            <p>整体只使用黑、白、灰阶，通过光照方向、内外阴影和材质透明度建立按钮与卡片层级。</p>
+            <div class="palette">
+              <div class="swatch" style="background:#ffffff;color:#111"><strong>Porcelain</strong><span>#FFFFFF</span></div>
+              <div class="swatch" style="background:#f2f2f7;color:#111"><strong>Soft White</strong><span>#F2F2F7</span></div>
+              <div class="swatch" style="background:#8e8e93"><strong>Mid Gray</strong><span>#8E8E93</span></div>
+              <div class="swatch" style="background:#1c1c1e"><strong>Graphite</strong><span>#1C1C1E</span></div>
+              <div class="swatch" style="background:#000000"><strong>Black</strong><span>#000000</span></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <h2>可扩展页面方向</h2>
+            <p>后续可以把现有“数据 / 记录 / 周报 / 个人”统一成底部 Tab，并为每页套用同一套 iOS 视觉语言。</p>
+            <div class="screen-row">
+              <div class="mini-screen"><h4>数据首页</h4><div class="large-block"></div><div class="small-block"></div><div class="small-block"></div><div class="bar" style="width:80%"></div><div class="bar" style="width:55%"></div></div>
+              <div class="mini-screen"><h4>记一餐</h4><div class="bar" style="width:100%;height:38px"></div><div class="small-block"></div><div class="small-block"></div><div class="small-block"></div><div class="large-block" style="height:54px;background:linear-gradient(145deg,#2a2a2c,#050505)"></div></div>
+              <div class="mini-screen"><h4>周报</h4><div class="large-block" style="background:linear-gradient(145deg,#111,#5c5c62)"></div><div class="bar" style="width:90%"></div><div class="bar" style="width:70%"></div><div class="small-block"></div><div class="small-block"></div></div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

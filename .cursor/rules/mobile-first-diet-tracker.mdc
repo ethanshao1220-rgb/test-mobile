@@ -1,0 +1,204 @@
+---
+description: Mobile-first diet tracker engineering and collaboration rules
+alwaysApply: true
+---
+
+# Mobile-First Diet Tracker Rules
+
+## Scope
+
+These rules define implementation constraints and collaboration conventions.
+
+Project facts, current architecture state, active entry points, data contract status, verification notes, and remaining risks are maintained separately in `.cursor/PROJECT_MEMORY.md`.
+
+Product requirements, flows, boundaries, and priorities are maintained in `VibeCoding-饮食管理软件开发文档.md`.
+
+## Architecture Guardrails
+
+- Preserve the current Web MVP while migrating deliberately.
+- New primary product work should go to `mobile/` and `backend/`, not back into the old Web MVP by default.
+- Do not assume the current codebase already matches the target architecture.
+- Do not rewrite working MVP user-visible behavior unless explicitly requested.
+
+## Target Stack
+
+- Frontend: React Native Expo, TypeScript, React Query, React Hook Form, Expo Router
+- Backend: FastAPI, PostgreSQL, Pydantic, SQLAlchemy
+- General: strict TypeScript, no `any`, functional components only
+
+## Mobile Product Rules
+
+- Mobile-first architecture; desktop is secondary.
+- Fast interaction speed and minimal UI complexity.
+- Production-ready code only; avoid over-engineering.
+- Prefer readable code over clever abstraction.
+- AI food recognition is assistive only; users must always be able to edit results, correct nutrition values, and manually input meals.
+
+## Mobile UI Rules
+
+All screens must support:
+
+- dark mode
+- safe area
+- keyboard avoidance
+- responsive layouts
+
+Use:
+
+- `FlatList` for lists
+- memoized components only when necessary
+- lightweight animations only
+
+Avoid:
+
+- unnecessary re-renders
+- deeply nested components
+- giant screens over 300 lines
+
+One screen should have one responsibility.
+
+## State and Offline Rules
+
+Use:
+
+- React Query for server state
+- local component state for UI state
+
+Avoid:
+
+- global state unless absolutely necessary
+- prop drilling deeper than 2 levels
+
+All async state must include:
+
+- loading state
+- error state
+- retry behavior
+
+Offline-first requirements:
+
+- queue unsynced records locally
+- retry failed sync automatically
+- use optimistic UI updates
+- persist today's logs locally
+
+Never block food logging because of network failure.
+
+## Food Logging Rules
+
+Food log structure:
+
+- `food_name`
+- `calories`
+- `protein`
+- `carbs`
+- `fat`
+- `quantity`
+- `unit`
+- `timestamp`
+
+Internal units must be normalized to:
+
+- `g`
+- `ml`
+- `serving`
+
+Never mix units in calculations.
+
+Nutrition calculations must live in the service layer, not UI components.
+
+## API and Backend Rules
+
+All APIs must:
+
+- use typed request/response models
+- validate input with Pydantic
+- return a consistent error format
+
+No direct fetch calls from UI. Use a centralized API client and typed service functions.
+
+All mutations must support optimistic updates and retry logic.
+
+FastAPI target structure:
+
+- `routers/`
+- `services/`
+- `repositories/`
+- `schemas/`
+- `models/`
+
+Business logic belongs in services.
+
+Database logic belongs in repositories.
+
+Routers should remain thin.
+
+## Error Handling and Security
+
+Never silently fail.
+
+All async operations must:
+
+- catch errors
+- log errors safely
+- show user-friendly messages
+
+Never expose raw backend errors to users.
+
+Never store secrets in frontend code.
+
+Use secure token storage and HTTPS for production.
+
+Do not log tokens, passwords, or personal health data.
+
+## Performance and Testing
+
+Prioritize:
+
+- fast startup
+- smooth scrolling
+- low memory usage
+
+Avoid:
+
+- unnecessary network requests
+- huge component trees
+- excessive animations
+
+Images must be compressed before upload and lazy-loaded when possible.
+
+Critical flows must have tests:
+
+- login
+- add meal
+- edit meal
+- sync records
+
+Use Jest and Detox for the mobile app.
+
+## Code Quality Rules
+
+Strict TypeScript mode must remain enabled.
+
+Forbidden:
+
+- `any`
+- massive utility files
+- duplicated API logic
+- inline business logic
+
+Prefer:
+
+- small reusable functions
+- typed interfaces
+- clear naming
+
+## Handoff Rules
+
+When handing work to another agent, always clarify:
+
+- current architecture state: Web MVP, migration in progress, or target mobile stack
+- active app entry points and commands
+- data model changes made during the session
+- API contract changes made during the session
+- verification performed and remaining risks
