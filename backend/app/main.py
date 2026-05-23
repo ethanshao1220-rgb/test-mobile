@@ -7,7 +7,8 @@ from app.routers.dashboard import router as dashboard_router
 from app.routers.foods import router as foods_router
 from app.routers.logs import exercise_router, food_router
 from app.routers.plans import router as plans_router
-from app.routers.profile import body_router, router as profile_router
+from app.routers.profile import body_router
+from app.routers.profile import router as profile_router
 
 app = FastAPI(title="FitDiet Mobile API")
 

@@ -21,4 +21,15 @@ def read_today(target_date: date | None = None, db: Session = Depends(get_db)) -
     exercise_burned = exercise_calories_for_day(db, user.id, day)
     remaining = calculate_remaining_calories(target_intake, exercise_burned, food_consumed)
     completion = round(min(food_consumed / target_intake, 1) * 100) if target_intake else 0
-    return ApiResponse(data=DashboardToday(date=day, target_intake=target_intake, food_consumed=food_consumed, exercise_burned=exercise_burned, remaining_calories=remaining, completion_rate=completion, active_plan=PlanRead.model_validate(plan) if plan else None, planned_exercises=[]))
+    return ApiResponse(
+        data=DashboardToday(
+            date=day,
+            target_intake=target_intake,
+            food_consumed=food_consumed,
+            exercise_burned=exercise_burned,
+            remaining_calories=remaining,
+            completion_rate=completion,
+            active_plan=PlanRead.model_validate(plan) if plan else None,
+            planned_exercises=[],
+        )
+    )

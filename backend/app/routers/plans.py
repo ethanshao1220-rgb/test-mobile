@@ -52,4 +52,8 @@ def read_plan_summary(period: str = "day", db: Session = Depends(get_db)) -> Api
     target = plan.daily_calorie_target if plan else 0
     delta = plan.daily_calorie_delta if plan else 0
     multiplier = {"day": 1, "week": 7, "month": 30}.get(period, 1)
-    return ApiResponse(data=PlanSummary(period=period, target_intake=target * multiplier, food_consumed=0, exercise_burned=0, remaining_calories=target * multiplier, daily_delta=delta))
+    return ApiResponse(
+        data=PlanSummary(
+            period=period, target_intake=target * multiplier, food_consumed=0, exercise_burned=0, remaining_calories=target * multiplier, daily_delta=delta
+        )
+    )

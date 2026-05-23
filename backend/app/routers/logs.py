@@ -18,7 +18,15 @@ def list_food_logs(target_date: date | None = None, db: Session = Depends(get_db
     user = get_or_create_user(db)
     if target_date:
         start, end = day_bounds(target_date)
-        rows = db.scalars(select(FoodLog).where(FoodLog.user_id == user.id, FoodLog.timestamp >= start, FoodLog.timestamp < end).order_by(FoodLog.timestamp.desc())).all()
+        rows = db.scalars(
+            select(FoodLog)
+            .where(
+                FoodLog.user_id == user.id,
+                FoodLog.timestamp >= start,
+                FoodLog.timestamp < end,
+            )
+            .order_by(FoodLog.timestamp.desc())
+        ).all()
     else:
         rows = db.scalars(select(FoodLog).where(FoodLog.user_id == user.id).order_by(FoodLog.timestamp.desc())).all()
     return ApiResponse(data=[FoodLogRead.model_validate(row) for row in rows])
@@ -39,7 +47,15 @@ def list_exercise_logs(target_date: date | None = None, db: Session = Depends(ge
     user = get_or_create_user(db)
     if target_date:
         start, end = day_bounds(target_date)
-        rows = db.scalars(select(ExerciseLog).where(ExerciseLog.user_id == user.id, ExerciseLog.timestamp >= start, ExerciseLog.timestamp < end).order_by(ExerciseLog.timestamp.desc())).all()
+        rows = db.scalars(
+            select(ExerciseLog)
+            .where(
+                ExerciseLog.user_id == user.id,
+                ExerciseLog.timestamp >= start,
+                ExerciseLog.timestamp < end,
+            )
+            .order_by(ExerciseLog.timestamp.desc())
+        ).all()
     else:
         rows = db.scalars(select(ExerciseLog).where(ExerciseLog.user_id == user.id).order_by(ExerciseLog.timestamp.desc())).all()
     return ApiResponse(data=[ExerciseLogRead.model_validate(row) for row in rows])

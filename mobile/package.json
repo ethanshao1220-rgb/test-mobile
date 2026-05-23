@@ -5,6 +5,10 @@
     "ios": "expo start --ios",
     "android": "expo start --android",
     "web": "expo start --web",
+    "lint": "eslint app src --ext .ts,.tsx",
+    "format": "prettier --write \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" \"*.{js,json}\"",
+    "format:check": "prettier --check \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" \"*.{js,json}\"",
+    "typecheck": "tsc --noEmit",
     "test": "jest"
   },
   "dependencies": {
@@ -29,8 +33,12 @@
   "devDependencies": {
     "@testing-library/react-native": "^13.3.3",
     "@types/react": "~19.1.10",
+    "eslint": "latest",
+    "eslint-config-expo": "latest",
+    "eslint-config-prettier": "latest",
     "jest": "~29.7.0",
     "jest-expo": "~54.0.17",
+    "prettier": "latest",
     "react-test-renderer": "19.1.0",
     "typescript": "~5.9.2"
   },

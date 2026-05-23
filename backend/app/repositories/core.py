@@ -42,13 +42,25 @@ def day_bounds(target_date: date) -> tuple[datetime, datetime]:
 
 def food_calories_for_day(db: Session, user_id: str, target_date: date) -> float:
     start, end = day_bounds(target_date)
-    value = db.scalar(select(func.coalesce(func.sum(FoodLog.calories), 0)).where(FoodLog.user_id == user_id, FoodLog.timestamp >= start, FoodLog.timestamp < end))
+    value = db.scalar(
+        select(func.coalesce(func.sum(FoodLog.calories), 0)).where(
+            FoodLog.user_id == user_id,
+            FoodLog.timestamp >= start,
+            FoodLog.timestamp < end,
+        )
+    )
     return float(value or 0)
 
 
 def exercise_calories_for_day(db: Session, user_id: str, target_date: date) -> float:
     start, end = day_bounds(target_date)
-    value = db.scalar(select(func.coalesce(func.sum(ExerciseLog.calories_burned), 0)).where(ExerciseLog.user_id == user_id, ExerciseLog.timestamp >= start, ExerciseLog.timestamp < end))
+    value = db.scalar(
+        select(func.coalesce(func.sum(ExerciseLog.calories_burned), 0)).where(
+            ExerciseLog.user_id == user_id,
+            ExerciseLog.timestamp >= start,
+            ExerciseLog.timestamp < end,
+        )
+    )
     return float(value or 0)
 
 

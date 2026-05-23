@@ -1,0 +1,53 @@
+name: Quality Gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install backend dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt
+
+      - name: Backend lint
+        run: python -m ruff check backend
+
+      - name: Backend format check
+        run: python -m ruff format --check backend
+
+      - name: Backend tests
+        run: python -m pytest
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install mobile dependencies
+        run: npm install --prefix mobile
+
+      - name: Mobile lint
+        run: npm --prefix mobile run lint
+
+      - name: Mobile format check
+        run: npm --prefix mobile run format:check
+
+      - name: Mobile typecheck
+        run: npm --prefix mobile run typecheck
+
+      - name: Mobile tests
+        run: npm --prefix mobile run test -- --runInBand

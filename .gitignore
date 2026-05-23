@@ -5,11 +5,13 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.ruff_cache/
 backend/.venv/
 
 # Node / Expo
 node_modules/
 mobile/.expo/
+mobile/.eslintcache
 expo-env.d.ts
 
 # Local env

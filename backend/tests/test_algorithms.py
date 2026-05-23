@@ -1,6 +1,13 @@
 from datetime import date
 
-from app.services.algorithms import calculate_bmi, calculate_bmr, calculate_daily_calorie_delta, calculate_remaining_calories, calculate_target_intake, calculate_tdee
+from app.services.algorithms import (
+    calculate_bmi,
+    calculate_bmr,
+    calculate_daily_calorie_delta,
+    calculate_remaining_calories,
+    calculate_target_intake,
+    calculate_tdee,
+)
 
 
 def test_body_algorithms() -> None:

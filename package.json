@@ -1,1 +1,24 @@
-{"scripts":{"dev":"python3 server/app.py","start":"python3 server/app.py","backend:dev":"uvicorn app.main:app --reload --app-dir backend","backend:test":"python3 -m pytest","mobile:dev":"npm --prefix mobile run dev","mobile:ios":"npm --prefix mobile run ios","mobile:android":"npm --prefix mobile run android"},"dependencies":{},"devDependencies":{}}
+{
+  "private": true,
+  "scripts": {
+    "dev": "python3 server/app.py",
+    "start": "python3 server/app.py",
+    "backend:dev": "uvicorn app.main:app --reload --app-dir backend",
+    "backend:test": "python3 -m pytest",
+    "backend:lint": "python3 -m ruff check backend",
+    "backend:format": "python3 -m ruff format backend",
+    "backend:format:check": "python3 -m ruff format --check backend",
+    "mobile:dev": "npm --prefix mobile run dev",
+    "mobile:ios": "npm --prefix mobile run ios",
+    "mobile:android": "npm --prefix mobile run android",
+    "mobile:lint": "npm --prefix mobile run lint",
+    "mobile:format": "npm --prefix mobile run format",
+    "mobile:format:check": "npm --prefix mobile run format:check",
+    "mobile:typecheck": "npm --prefix mobile run typecheck",
+    "mobile:test": "npm --prefix mobile run test -- --runInBand",
+    "check": "npm run backend:lint && npm run backend:format:check && npm run backend:test && npm run mobile:lint && npm run mobile:format:check && npm run mobile:typecheck && npm run mobile:test",
+    "format": "npm run backend:format && npm run mobile:format"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

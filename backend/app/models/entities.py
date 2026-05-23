@@ -29,8 +29,8 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    body_metrics: Mapped[list["BodyMetric"]] = relationship(back_populates="user")
-    plans: Mapped[list["Plan"]] = relationship(back_populates="user")
+    body_metrics: Mapped[list[BodyMetric]] = relationship(back_populates="user")
+    plans: Mapped[list[Plan]] = relationship(back_populates="user")
 
 
 class BodyMetric(Base):
