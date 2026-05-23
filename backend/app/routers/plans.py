@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends
+from datetime import date
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Plan
-from app.repositories import active_plan, get_or_create_user, latest_body_metric
-from app.schemas import ApiResponse, PlanCreate, PlanRead, PlanSummary
-from app.services.algorithms import calculate_daily_calorie_delta, calculate_target_intake
+from app.repositories import active_plan, exercise_calories_for_range, food_calories_for_range, get_or_create_user, latest_body_metric, period_bounds
+from app.schemas import ApiResponse, Period, PlanCreate, PlanRead, PlanSummary
+from app.services.algorithms import calculate_daily_calorie_delta, calculate_remaining_calories, calculate_target_intake
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -46,14 +48,24 @@ def upsert_current_plan(payload: PlanCreate, db: Session = Depends(get_db)) -> A
 
 
 @router.get("/summary", response_model=ApiResponse[PlanSummary])
-def read_plan_summary(period: str = "day", db: Session = Depends(get_db)) -> ApiResponse[PlanSummary]:
+def read_plan_summary(period: Period = Query(default="day"), target_date: date | None = None, db: Session = Depends(get_db)) -> ApiResponse[PlanSummary]:
     user = get_or_create_user(db)
     plan = active_plan(db, user.id)
-    target = plan.daily_calorie_target if plan else 0
+    day = target_date or date.today()
+    start, end, days = period_bounds(day, period)
+    daily_target = plan.daily_calorie_target if plan else 0
     delta = plan.daily_calorie_delta if plan else 0
-    multiplier = {"day": 1, "week": 7, "month": 30}.get(period, 1)
+    target_intake = daily_target * days
+    food_consumed = food_calories_for_range(db, user.id, start, end)
+    exercise_burned = exercise_calories_for_range(db, user.id, start, end)
+    remaining = calculate_remaining_calories(target_intake, exercise_burned, food_consumed)
     return ApiResponse(
         data=PlanSummary(
-            period=period, target_intake=target * multiplier, food_consumed=0, exercise_burned=0, remaining_calories=target * multiplier, daily_delta=delta
+            period=period,
+            target_intake=target_intake,
+            food_consumed=food_consumed,
+            exercise_burned=exercise_burned,
+            remaining_calories=remaining,
+            daily_delta=delta,
         )
     )

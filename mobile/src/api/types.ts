@@ -48,7 +48,41 @@ export type DashboardToday = {
   remaining_calories: number;
   completion_rate: number;
   active_plan: Plan | null;
-  planned_exercises: string[];
+  nutrition: NutritionSummary;
+};
+
+export type NutritionSummary = {
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+export type PlanSummary = {
+  period: Period;
+  target_intake: number;
+  food_consumed: number;
+  exercise_burned: number;
+  remaining_calories: number;
+  daily_delta: number;
+};
+
+export type FoodLogInput = {
+  food_name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  quantity: number;
+  unit: Unit;
+  timestamp: string;
+};
+
+export type ExerciseLogInput = {
+  activity_name: string;
+  duration_min: number;
+  calories_burned: number;
+  timestamp: string;
+  note?: string;
 };
 
 export type Food = {

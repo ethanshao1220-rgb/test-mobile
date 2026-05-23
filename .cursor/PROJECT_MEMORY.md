@@ -280,26 +280,30 @@ Current status snapshot:
 
 - food search direction exists
 - create food log direction exists
-- current status: partially connected, but still not a fully stable production-ready logging loop
-- main gaps:
-  - confirmation chain is too short
+- manual food entry direction now exists
+- current status: basic end-to-end logging loop is now usable on mobile
+- current known gaps:
   - edit/delete is not yet a closed loop
-  - offline queue is not complete
+  - offline queue is minimal, not a full sync system
+  - backend replay is not idempotent yet
 
 ### 8.3 Exercise log
 
 - create exercise log direction exists
 - exercise calories can feed remaining-calorie logic
-- current status: simpler than food flow, but still needs the same offline/retry discipline
+- current status: usable with the same minimal offline queue path
+- current known gaps:
+  - edit/delete loop is not implemented
+  - replay is still exposed to duplicate-write risk without idempotency
 
 ### 8.4 Today dashboard
 
 - remaining calories logic direction exists
 - completion display direction exists
-- current status: partially complete
+- current status: mobile today screen is connected to real backend data and supports retry
 - main gaps:
-  - macro detail chain is still incomplete
-  - some UI sections are ahead of finalized data contract support
+  - food detail list is still not a true record-detail feed
+  - some advice/display sections are still lighter than final product scope
 
 ### 8.5 Chain-level assessment
 
@@ -308,12 +312,13 @@ Overall chain status:
 - runtime path exists
 - architecture path is correct
 - user-value path is visible
-- reliability path is incomplete
+- basic mobile logging loop is now usable
+- reliability path is improved but still incomplete
 
 Current bottleneck:
 
-- the chain is not blocked by missing navigation anymore
-- it is mainly blocked by record-flow reliability and contract completeness
+- the main blocker is no longer navigation or initial data loading
+- it is now centered on sync robustness, idempotency, and post-log detail completeness
 
 ## 9. Recent Data Contract Change Log
 
@@ -382,21 +387,22 @@ remaining = target_intake + exercise_burned - food_consumed
 These are current important gaps, not speculative nice-to-haves:
 
 1. Food logging core flow is not fully stable yet
-   - confirmation chain is still too short
    - edit/delete loop is incomplete
+   - today page still lacks a true record-detail feed
 
-2. Offline-first flow is not complete
-   - no full local unsynced queue yet
-   - retry and sync-state UX still need work
+2. Offline-first flow is only minimally complete
+   - outbox and sync-state UX exist
+   - automatic retry and recovery are still basic
+   - no idempotency key yet, so replay can duplicate writes
 
-3. Dashboard data is not fully complete
-   - macro detail chain is still incomplete in mobile flow
-
-4. Production backend target is not finished
+3. Production backend target is not finished
    - PostgreSQL migration is still pending
 
-5. Unit normalization is still a migration risk
+4. Unit normalization is still a migration risk
    - `piece` needs proper handling
+
+5. Mobile automated coverage is still thin
+   - current Jest run passes with no test files found for the new record/offline flows
 
 ## 11. Validation Already Performed
 

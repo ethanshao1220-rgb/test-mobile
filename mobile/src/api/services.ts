@@ -1,8 +1,22 @@
 import { apiRequest } from "@/api/client";
-import type { BodyMetric, DashboardToday, Food, Plan, UserProfile } from "@/api/types";
+import type {
+  BodyMetric,
+  DashboardToday,
+  ExerciseLogInput,
+  Food,
+  FoodLogInput,
+  Period,
+  Plan,
+  PlanSummary,
+  UserProfile,
+} from "@/api/types";
 
 export function getTodayDashboard(): Promise<DashboardToday> {
   return apiRequest<DashboardToday>("/dashboard/today");
+}
+
+export function getPlanSummary(period: Period): Promise<PlanSummary> {
+  return apiRequest<PlanSummary>(`/plans/summary?period=${period}`);
 }
 
 export function getProfile(): Promise<UserProfile> {
@@ -17,26 +31,11 @@ export function searchFoods(keyword: string): Promise<Food[]> {
   return apiRequest<Food[]>(`/foods/search?keyword=${encodeURIComponent(keyword)}`);
 }
 
-export function createFoodLog(input: {
-  food_name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  quantity: number;
-  unit: "g" | "ml" | "serving";
-  timestamp: string;
-}): Promise<unknown> {
+export function createFoodLog(input: FoodLogInput): Promise<unknown> {
   return apiRequest("/food-logs", { method: "POST", body: JSON.stringify(input) });
 }
 
-export function createExerciseLog(input: {
-  activity_name: string;
-  duration_min: number;
-  calories_burned: number;
-  timestamp: string;
-  note?: string;
-}): Promise<unknown> {
+export function createExerciseLog(input: ExerciseLogInput): Promise<unknown> {
   return apiRequest("/exercise-logs", { method: "POST", body: JSON.stringify(input) });
 }
 

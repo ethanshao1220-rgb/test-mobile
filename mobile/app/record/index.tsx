@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -12,37 +13,85 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { createExerciseLog, createFoodLog, searchFoods } from "@/api/services";
-import type { Food } from "@/api/types";
+import { searchFoods } from "@/api/services";
+import type { ExerciseLogInput, Food, FoodLogInput } from "@/api/types";
+import { flushOutbox } from "@/offline/sync";
+import { submitExerciseLogWithOffline, submitFoodLogWithOffline } from "@/offline/submitLogs";
+import { useSyncState } from "@/offline/useSyncState";
 
 type RecordTab = "food" | "exercise";
+type FeedbackTone = "success" | "error" | "info";
+
+type Feedback = {
+  text: string;
+  tone: FeedbackTone;
+};
 
 export default function RecordScreen() {
+  const router = useRouter();
   const queryClient = useQueryClient();
+  const syncState = useSyncState();
   const [tab, setTab] = useState<RecordTab>("food");
   const [keyword, setKeyword] = useState("");
   const [amount, setAmount] = useState("100");
   const [exerciseName, setExerciseName] = useState("跑步");
   const [duration, setDuration] = useState("30");
   const [burned, setBurned] = useState("250");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const foods = useQuery({
     queryKey: ["foods", keyword],
     queryFn: () => searchFoods(keyword),
     enabled: keyword.trim().length > 0,
   });
-  const addFood = useMutation({
-    mutationFn: createFoodLog,
-    onSuccess: async () => queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-  });
-  const addExercise = useMutation({
-    mutationFn: createExerciseLog,
-    onSuccess: async () => queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-  });
+
+  async function refreshAfterSubmit() {
+    await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    await syncState.reload();
+  }
+
+  async function submitFoodLog(input: FoodLogInput) {
+    setIsSubmitting(true);
+    setFeedback(null);
+    try {
+      const result = await submitFoodLogWithOffline(input);
+      await refreshAfterSubmit();
+      setFeedback(
+        result === "synced"
+          ? { text: "已记录到今日饮食。", tone: "success" }
+          : { text: "网络不可用，已离线保存，稍后会自动同步。", tone: "info" },
+      );
+      if (result === "queued") void flushOutbox().then(refreshAfterSubmit);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function submitExerciseLog(input: ExerciseLogInput) {
+    setIsSubmitting(true);
+    setFeedback(null);
+    try {
+      const result = await submitExerciseLogWithOffline(input);
+      await refreshAfterSubmit();
+      setFeedback(
+        result === "synced"
+          ? { text: "已记录到今日运动。", tone: "success" }
+          : { text: "网络不可用，已离线保存，稍后会自动同步。", tone: "info" },
+      );
+      if (result === "queued") void flushOutbox().then(refreshAfterSubmit);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   function logFood(food: Food) {
-    const quantity = Number(amount) || food.quantity;
+    const quantity = Number(amount);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setFeedback({ text: "请输入大于 0 的食物数量。", tone: "error" });
+      return;
+    }
     const ratio = food.quantity ? quantity / food.quantity : 1;
-    addFood.mutate({
+    void submitFoodLog({
       food_name: food.name,
       calories: Math.round(food.calories * ratio),
       protein: Number((food.protein * ratio).toFixed(1)),
@@ -55,10 +104,24 @@ export default function RecordScreen() {
   }
 
   function logExercise() {
-    addExercise.mutate({
-      activity_name: exerciseName,
-      duration_min: Number(duration),
-      calories_burned: Number(burned),
+    const durationValue = Number(duration);
+    const burnedValue = Number(burned);
+    if (!exerciseName.trim()) {
+      setFeedback({ text: "请输入运动项目。", tone: "error" });
+      return;
+    }
+    if (!Number.isFinite(durationValue) || durationValue <= 0) {
+      setFeedback({ text: "请输入大于 0 的运动时长。", tone: "error" });
+      return;
+    }
+    if (!Number.isFinite(burnedValue) || burnedValue <= 0) {
+      setFeedback({ text: "请输入大于 0 的运动消耗。", tone: "error" });
+      return;
+    }
+    void submitExerciseLog({
+      activity_name: exerciseName.trim(),
+      duration_min: durationValue,
+      calories_burned: burnedValue,
       timestamp: new Date().toISOString(),
     });
   }
@@ -71,10 +134,34 @@ export default function RecordScreen() {
       >
         <View style={styles.content}>
           <View style={styles.overlayTopbar}>
-            <Text style={styles.backText}>← 返回</Text>
+            <Pressable onPress={() => router.back()} style={styles.backButton}>
+              <Text style={styles.backText}>← 返回</Text>
+            </Pressable>
             <Text style={styles.overlayTitle}>记一餐</Text>
             <View style={styles.topbarSpacer} />
           </View>
+
+          {syncState.pendingCount > 0 || syncState.isSyncing ? (
+            <View style={styles.syncBanner}>
+              <Text style={styles.syncBannerText}>
+                {syncState.isSyncing
+                  ? "正在同步离线记录"
+                  : `待同步 ${syncState.pendingCount} 条记录`}
+              </Text>
+              <Pressable
+                disabled={syncState.isSyncing}
+                onPress={() => void flushOutbox().then(refreshAfterSubmit)}
+              >
+                <Text style={styles.syncAction}>重试同步</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {feedback ? (
+            <View style={[styles.feedback, styles[feedback.tone]]}>
+              <Text style={styles.feedbackText}>{feedback.text}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.segmented}>
             <Pressable
@@ -108,9 +195,17 @@ export default function RecordScreen() {
                 />
               </View>
               {foods.isLoading ? <ActivityIndicator color="#111111" /> : null}
-              {foods.isError ? <Text style={styles.error}>搜索失败，请稍后重试。</Text> : null}
+              {foods.isError ? <Text style={styles.errorText}>搜索失败，请稍后重试。</Text> : null}
               {foods.data?.length === 0 && keyword.trim() ? (
-                <Text style={styles.hint}>没有找到匹配食物。</Text>
+                <View style={styles.emptyCard}>
+                  <Text style={styles.hint}>没有找到匹配食物。</Text>
+                  <Pressable
+                    onPress={() => router.push("./manual-food")}
+                    style={styles.secondaryButton}
+                  >
+                    <Text style={styles.secondaryButtonText}>手动录入食物</Text>
+                  </Pressable>
+                </View>
               ) : null}
               <FlatList
                 data={foods.data ?? []}
@@ -155,14 +250,8 @@ export default function RecordScreen() {
               />
               <LabeledInput label="时长 分钟" value={duration} onChangeText={setDuration} />
               <LabeledInput label="消耗 kcal" value={burned} onChangeText={setBurned} />
-              <Pressable
-                disabled={addExercise.isPending}
-                onPress={logExercise}
-                style={styles.primaryButton}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {addExercise.isPending ? "记录中" : "记录运动"}
-                </Text>
+              <Pressable disabled={isSubmitting} onPress={logExercise} style={styles.primaryButton}>
+                <Text style={styles.primaryButtonText}>{isSubmitting ? "记录中" : "记录运动"}</Text>
               </Pressable>
             </View>
           )}
@@ -213,6 +302,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#f4f4f6" },
   content: { flex: 1, gap: 16, padding: 18 },
   overlayTopbar: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  backButton: { minWidth: 56, paddingVertical: 8 },
   backText: { color: "#0a0a0a", fontSize: 16, fontWeight: "800" },
   overlayTitle: { color: "#0a0a0a", fontSize: 17, fontWeight: "900" },
   topbarSpacer: { width: 56 },
@@ -281,7 +371,33 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   hint: { color: "#666666", fontSize: 13, lineHeight: 19 },
-  error: { color: "#1c1c1e", fontSize: 14, fontWeight: "800" },
+  syncBanner: {
+    alignItems: "center",
+    backgroundColor: "#111113",
+    borderRadius: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  syncBannerText: { color: "rgba(255,255,255,0.78)", flex: 1, fontSize: 13, fontWeight: "800" },
+  syncAction: { color: "#ffffff", fontSize: 13, fontWeight: "900" },
+  feedback: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 },
+  feedbackText: { color: "#0a0a0a", fontSize: 14, fontWeight: "800", lineHeight: 20 },
+  success: { backgroundColor: "#e7f7ec" },
+  error: { backgroundColor: "#f8e8e8" },
+  info: { backgroundColor: "#ececf1" },
+  emptyCard: { backgroundColor: "#ffffff", borderRadius: 22, gap: 12, padding: 16 },
+  secondaryButton: {
+    alignItems: "center",
+    backgroundColor: "#050505",
+    borderRadius: 16,
+    justifyContent: "center",
+    minHeight: 44,
+    padding: 12,
+  },
+  secondaryButtonText: { color: "#ffffff", fontWeight: "900" },
+  errorText: { color: "#1c1c1e", fontSize: 14, fontWeight: "800" },
   cardPanel: {
     backgroundColor: "rgba(255,255,255,0.88)",
     borderRadius: 30,

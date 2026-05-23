@@ -118,6 +118,12 @@ class ExerciseLogRead(ExerciseLogCreate):
     model_config = {"from_attributes": True}
 
 
+class NutritionSummary(BaseModel):
+    protein: float
+    carbs: float
+    fat: float
+
+
 class DashboardToday(BaseModel):
     date: date
     target_intake: float
@@ -126,7 +132,7 @@ class DashboardToday(BaseModel):
     remaining_calories: float
     completion_rate: int
     active_plan: PlanRead | None
-    planned_exercises: list[str]
+    nutrition: NutritionSummary
 
 
 class PlanSummary(BaseModel):

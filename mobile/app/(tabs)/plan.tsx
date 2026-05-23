@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { createPlan, getLatestBodyMetric } from "@/api/services";
+import { createPlan, getLatestBodyMetric, getPlanSummary } from "@/api/services";
 
 const periods = ["day", "week", "month"] as const;
 type Period = (typeof periods)[number];
@@ -23,18 +23,28 @@ export default function PlanScreen() {
   const [months, setMonths] = useState("2");
   const [frequency, setFrequency] = useState("3");
   const latestMetric = useQuery({ queryKey: ["body", "latest"], queryFn: getLatestBodyMetric });
+  const summary = useQuery({
+    queryKey: ["plans", "summary", period],
+    queryFn: () => getPlanSummary(period),
+  });
   const mutation = useMutation({
     mutationFn: createPlan,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["plans", "summary"] }),
+      ]);
     },
   });
 
-  const startWeight = latestMetric.data?.weight_kg ?? 72.5;
+  const startWeight = latestMetric.data?.weight_kg;
+  const canSave = startWeight !== undefined && Number.isFinite(Number(targetWeight));
   const durationDays = Math.max(Number(months) || 1, 1) * 30;
-  const dailyDelta = ((Number(targetWeight) - startWeight) * 7700) / durationDays;
+  const dailyDelta =
+    startWeight === undefined ? null : ((Number(targetWeight) - startWeight) * 7700) / durationDays;
 
   function savePlan() {
+    if (!canSave || startWeight === undefined) return;
     const startDate = new Date();
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + durationDays - 1);
@@ -62,15 +72,37 @@ export default function PlanScreen() {
 
           <View style={styles.heroCard}>
             <View style={styles.cardHeader}>
-              <Text style={styles.darkHeaderText}>本周 vs 上周</Text>
-              <Text style={styles.darkBadge}>本周</Text>
+              <Text style={styles.darkHeaderText}>真实周期汇总</Text>
+              <Text style={styles.darkBadge}>{periodLabel(period)}</Text>
             </View>
-            <View style={styles.compareGrid}>
-              <Metric label="本周完成度" value="0%" dark />
-              <Metric label="上周完成度" value="0%" dark />
-              <Metric label="完成度变化" value="0%" dark />
-              <Metric label="本周体重变化" value="0kg" dark />
-            </View>
+            {summary.isLoading ? (
+              <Text style={styles.darkHint}>正在加载汇总数据</Text>
+            ) : summary.isError || !summary.data ? (
+              <Text style={styles.darkHint}>汇总数据加载失败，请稍后重试。</Text>
+            ) : (
+              <View style={styles.compareGrid}>
+                <SummaryMetric
+                  label="目标摄入"
+                  value={`${Math.round(summary.data.target_intake)} kcal`}
+                  dark
+                />
+                <SummaryMetric
+                  label="已吃"
+                  value={`${Math.round(summary.data.food_consumed)} kcal`}
+                  dark
+                />
+                <SummaryMetric
+                  label="运动回补"
+                  value={`${Math.round(summary.data.exercise_burned)} kcal`}
+                  dark
+                />
+                <SummaryMetric
+                  label="剩余额度"
+                  value={`${Math.round(summary.data.remaining_calories)} kcal`}
+                  dark
+                />
+              </View>
+            )}
           </View>
 
           <View style={styles.card}>
@@ -94,38 +126,23 @@ export default function PlanScreen() {
             <LabeledInput label="目标体重 kg" value={targetWeight} onChangeText={setTargetWeight} />
             <LabeledInput label="周期 月" value={months} onChangeText={setMonths} />
             <LabeledInput label="每周运动次数" value={frequency} onChangeText={setFrequency} />
-            <Text style={styles.hint}>预计每日热量差：{Math.round(dailyDelta)} kcal</Text>
-            <View style={styles.buttonRow}>
-              <Pressable style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>重新计算</Text>
-              </Pressable>
-              <Pressable
-                disabled={mutation.isPending}
-                onPress={savePlan}
-                style={styles.primaryButton}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {mutation.isPending ? "保存中" : "保存目标"}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardHeaderText}>每日表现</Text>
-              <Text style={styles.badge}>7 days</Text>
-            </View>
-            <DailyItem date="今日" status="目标范围内" rate="0%" />
-            <DailyItem date="昨日" status="暂无数据" rate="0%" />
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardHeaderText}>下周建议</Text>
-              <Text style={styles.badge}>Next</Text>
-            </View>
-            <Text style={styles.advice}>保持记录频率，先让饮食数据稳定，再调整目标。</Text>
+            <Text style={styles.hint}>
+              {dailyDelta === null
+                ? "请先在我的页面记录体重，才能保存真实目标。"
+                : `预计每日热量差：${Math.round(dailyDelta)} kcal`}
+            </Text>
+            <Pressable
+              disabled={!canSave || mutation.isPending}
+              onPress={savePlan}
+              style={[
+                styles.primaryButton,
+                (!canSave || mutation.isPending) && styles.buttonDisabled,
+              ]}
+            >
+              <Text style={styles.primaryButtonText}>
+                {mutation.isPending ? "保存中" : "保存目标"}
+              </Text>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -155,7 +172,7 @@ function LabeledInput({
   );
 }
 
-function Metric({ label, value, dark }: { label: string; value: string; dark?: boolean }) {
+function SummaryMetric({ label, value, dark }: { label: string; value: string; dark?: boolean }) {
   return (
     <View style={styles.compareItem}>
       <Text style={dark ? styles.darkMetricLabel : styles.metricLabel}>{label}</Text>
@@ -164,15 +181,13 @@ function Metric({ label, value, dark }: { label: string; value: string; dark?: b
   );
 }
 
-function DailyItem({ date, status, rate }: { date: string; status: string; rate: string }) {
-  return (
-    <View style={styles.dailyItem}>
-      <Text style={styles.dailyDate}>{date}</Text>
-      <Text style={styles.dailyStatus}>
-        {rate} · {status}
-      </Text>
-    </View>
-  );
+function periodLabel(period: Period) {
+  const labels: Record<Period, string> = {
+    day: "今日",
+    week: "本周",
+    month: "本月",
+  };
+  return labels[period];
 }
 
 const styles = StyleSheet.create({
@@ -251,6 +266,7 @@ const styles = StyleSheet.create({
   metricValue: { color: "#0a0a0a", fontSize: 22, fontWeight: "900" },
   darkMetricLabel: { color: "rgba(255,255,255,0.62)", fontSize: 12 },
   darkMetricValue: { color: "#fff", fontSize: 22, fontWeight: "900" },
+  darkHint: { color: "rgba(255,255,255,0.72)", fontSize: 15, lineHeight: 22 },
   segmented: { backgroundColor: "#dedee3", borderRadius: 999, flexDirection: "row", padding: 4 },
   segment: {
     alignItems: "center",
@@ -287,6 +303,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   primaryButtonText: { color: "#fff", fontWeight: "900" },
+  buttonDisabled: { opacity: 0.45 },
   secondaryButton: {
     alignItems: "center",
     backgroundColor: "#ffffff",

@@ -1,10 +1,13 @@
 from datetime import date, datetime, time, timedelta
+from typing import Literal
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import BodyMetric, ExerciseLog, Food, FoodLog, Plan, User
+
+Period = Literal["day", "week", "month"]
 
 
 def get_or_create_user(db: Session) -> User:
@@ -40,8 +43,25 @@ def day_bounds(target_date: date) -> tuple[datetime, datetime]:
     return start, end
 
 
-def food_calories_for_day(db: Session, user_id: str, target_date: date) -> float:
-    start, end = day_bounds(target_date)
+def period_bounds(target_date: date, period: Period) -> tuple[datetime, datetime, int]:
+    if period == "week":
+        start_date = target_date - timedelta(days=target_date.weekday())
+        days = 7
+    elif period == "month":
+        start_date = target_date.replace(day=1)
+        next_month = start_date.replace(year=start_date.year + 1, month=1) if start_date.month == 12 else start_date.replace(month=start_date.month + 1)
+        start = datetime.combine(start_date, time.min)
+        end = datetime.combine(next_month, time.min)
+        return start, end, (end.date() - start.date()).days
+    else:
+        start_date = target_date
+        days = 1
+    start = datetime.combine(start_date, time.min)
+    end = start + timedelta(days=days)
+    return start, end, days
+
+
+def food_calories_for_range(db: Session, user_id: str, start: datetime, end: datetime) -> float:
     value = db.scalar(
         select(func.coalesce(func.sum(FoodLog.calories), 0)).where(
             FoodLog.user_id == user_id,
@@ -52,8 +72,7 @@ def food_calories_for_day(db: Session, user_id: str, target_date: date) -> float
     return float(value or 0)
 
 
-def exercise_calories_for_day(db: Session, user_id: str, target_date: date) -> float:
-    start, end = day_bounds(target_date)
+def exercise_calories_for_range(db: Session, user_id: str, start: datetime, end: datetime) -> float:
     value = db.scalar(
         select(func.coalesce(func.sum(ExerciseLog.calories_burned), 0)).where(
             ExerciseLog.user_id == user_id,
@@ -62,6 +81,32 @@ def exercise_calories_for_day(db: Session, user_id: str, target_date: date) -> f
         )
     )
     return float(value or 0)
+
+
+def food_macros_for_day(db: Session, user_id: str, target_date: date) -> tuple[float, float, float]:
+    start, end = day_bounds(target_date)
+    row = db.execute(
+        select(
+            func.coalesce(func.sum(FoodLog.protein), 0),
+            func.coalesce(func.sum(FoodLog.carbs), 0),
+            func.coalesce(func.sum(FoodLog.fat), 0),
+        ).where(
+            FoodLog.user_id == user_id,
+            FoodLog.timestamp >= start,
+            FoodLog.timestamp < end,
+        )
+    ).one()
+    return float(row[0] or 0), float(row[1] or 0), float(row[2] or 0)
+
+
+def food_calories_for_day(db: Session, user_id: str, target_date: date) -> float:
+    start, end = day_bounds(target_date)
+    return food_calories_for_range(db, user_id, start, end)
+
+
+def exercise_calories_for_day(db: Session, user_id: str, target_date: date) -> float:
+    start, end = day_bounds(target_date)
+    return exercise_calories_for_range(db, user_id, start, end)
 
 
 def seed_foods(db: Session) -> None:

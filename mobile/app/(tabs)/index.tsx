@@ -3,8 +3,11 @@ import { Link } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getTodayDashboard } from "@/api/services";
+import { flushOutbox } from "@/offline/sync";
+import { useSyncState } from "@/offline/useSyncState";
 
 export default function TodayScreen() {
+  const syncState = useSyncState();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["dashboard", "today"],
     queryFn: getTodayDashboard,
@@ -42,6 +45,20 @@ export default function TodayScreen() {
             <Text style={styles.brandSubtitle}>增肌减脂饮食助手</Text>
           </View>
         </View>
+
+        {syncState.pendingCount > 0 || syncState.isSyncing ? (
+          <View style={styles.syncBanner}>
+            <Text style={styles.syncBannerText}>
+              {syncState.isSyncing ? "正在同步离线记录" : `待同步 ${syncState.pendingCount} 条记录`}
+            </Text>
+            <Pressable
+              disabled={syncState.isSyncing}
+              onPress={() => void flushOutbox().then(() => syncState.reload())}
+            >
+              <Text style={styles.syncAction}>重试同步</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={styles.checkinCard}>
           <View>
@@ -84,15 +101,13 @@ export default function TodayScreen() {
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardHeaderText}>三大营养素</Text>
-            <Text style={styles.badge}>{Math.round(progress)}%</Text>
+            <Text style={styles.cardHeaderText}>已摄入营养素</Text>
+            <Text style={styles.badge}>今日</Text>
           </View>
-          <MacroRow name="蛋白质" value={0} target={0} />
-          <MacroRow name="碳水" value={0} target={0} />
-          <MacroRow name="脂肪" value={0} target={0} />
-          <Text style={styles.hint}>
-            移动端当前接口暂未返回三大营养素明细，后续按旧版数据补齐。
-          </Text>
+          <MacroRow name="蛋白质" value={data.nutrition.protein} />
+          <MacroRow name="碳水" value={data.nutrition.carbs} />
+          <MacroRow name="脂肪" value={data.nutrition.fat} />
+          <Text style={styles.hint}>当前仅展示真实记录汇总，暂不伪造营养素目标。</Text>
         </View>
 
         <View style={styles.card}>
@@ -120,14 +135,12 @@ export default function TodayScreen() {
   );
 }
 
-function MacroRow({ name, value, target }: { name: string; value: number; target: number }) {
+function MacroRow({ name, value }: { name: string; value: number }) {
   return (
     <View style={styles.macroRow}>
       <View style={styles.macroTop}>
         <Text style={styles.macroName}>{name}</Text>
-        <Text style={styles.macroValue}>
-          {value}g / {target}g
-        </Text>
+        <Text style={styles.macroValue}>{Number(value.toFixed(1))}g</Text>
       </View>
       <View style={styles.macroTrack}>
         <View style={styles.macroFill} />
@@ -212,6 +225,17 @@ const styles = StyleSheet.create({
   brandMarkText: { color: "#fff", fontSize: 20, fontWeight: "900" },
   brandTitle: { color: "#fff", fontSize: 18, fontWeight: "900", letterSpacing: -0.6 },
   brandSubtitle: { color: "rgba(255,255,255,0.62)", fontSize: 12, marginTop: 2 },
+  syncBanner: {
+    alignItems: "center",
+    backgroundColor: "#111113",
+    borderRadius: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  syncBannerText: { color: "rgba(255,255,255,0.78)", flex: 1, fontSize: 13, fontWeight: "800" },
+  syncAction: { color: "#ffffff", fontSize: 13, fontWeight: "900" },
   checkinCard: {
     backgroundColor: "#111113",
     borderColor: "rgba(255,255,255,0.18)",
