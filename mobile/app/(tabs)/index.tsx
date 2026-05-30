@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getTodayDashboard } from "@/api/services";
+import { getFoodLogs, getTodayDashboard } from "@/api/services";
 import { flushOutbox } from "@/offline/sync";
 import { useSyncState } from "@/offline/useSyncState";
 
@@ -11,6 +11,10 @@ export default function TodayScreen() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["dashboard", "today"],
     queryFn: getTodayDashboard,
+  });
+  const foodLogs = useQuery({
+    queryKey: ["food-logs", "today"],
+    queryFn: () => getFoodLogs(new Date().toISOString().slice(0, 10)),
   });
 
   if (isLoading) return <CenteredMessage text="正在加载今日饮食执行" loading />;
@@ -21,7 +25,7 @@ export default function TodayScreen() {
 
   const progress = Math.min(Math.max(data.completion_rate, 0), 100);
   const goalLabel = data.active_plan?.goal_type === "muscle_gain" ? "增肌" : "减脂";
-  const hasLogged = data.food_consumed > 0 || data.exercise_burned > 0;
+  const hasLogged = (foodLogs.data?.length ?? 0) > 0 || data.exercise_burned > 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -104,10 +108,14 @@ export default function TodayScreen() {
             <Text style={styles.cardHeaderText}>已摄入营养素</Text>
             <Text style={styles.badge}>今日</Text>
           </View>
-          <MacroRow name="蛋白质" value={data.nutrition.protein} />
-          <MacroRow name="碳水" value={data.nutrition.carbs} />
-          <MacroRow name="脂肪" value={data.nutrition.fat} />
-          <Text style={styles.hint}>当前仅展示真实记录汇总，暂不伪造营养素目标。</Text>
+          <MacroRow
+            name="蛋白质"
+            value={data.nutrition.protein}
+            target={data.nutrition.protein_target}
+          />
+          <MacroRow name="碳水" value={data.nutrition.carbs} target={data.nutrition.carbs_target} />
+          <MacroRow name="脂肪" value={data.nutrition.fat} target={data.nutrition.fat_target} />
+          <Text style={styles.hint}>根据当前计划自动推导每日营养目标。</Text>
         </View>
 
         <View style={styles.card}>
@@ -115,11 +123,19 @@ export default function TodayScreen() {
             <Text style={styles.cardHeaderText}>今日已记录食物</Text>
             <Text style={styles.badge}>明细</Text>
           </View>
-          <Text style={styles.hint}>
-            {hasLogged
-              ? "今日已有记录。进入 + 可继续添加吃一点 / 动一下。"
-              : "今天还没有记录食物。"}
-          </Text>
+          {foodLogs.isLoading ? <Text style={styles.hint}>正在加载食物记录...</Text> : null}
+          {!foodLogs.isLoading && (foodLogs.data?.length ?? 0) === 0 ? (
+            <Text style={styles.hint}>今天还没有记录食物。</Text>
+          ) : null}
+          {foodLogs.data?.map((item) => (
+            <View key={item.id} style={styles.foodLogItem}>
+              <Text style={styles.foodLogTitle}>{item.food_name}</Text>
+              <Text style={styles.foodLogMeta}>
+                {item.quantity}
+                {unitLabel(item.unit)} · {item.calories} kcal · P {item.protein}g / C {item.carbs}g / F {item.fat}g
+              </Text>
+            </View>
+          ))}
         </View>
 
         <View style={styles.card}>
@@ -135,18 +151,33 @@ export default function TodayScreen() {
   );
 }
 
-function MacroRow({ name, value }: { name: string; value: number }) {
+function MacroRow({ name, value, target }: { name: string; value: number; target: number }) {
+  const percent = target > 0 ? Math.min(value / target, 1) * 100 : 0;
   return (
     <View style={styles.macroRow}>
       <View style={styles.macroTop}>
         <Text style={styles.macroName}>{name}</Text>
-        <Text style={styles.macroValue}>{Number(value.toFixed(1))}g</Text>
+        <Text style={styles.macroValue}>
+          {Number(value.toFixed(1))}g / {target > 0 ? Number(target.toFixed(1)) : "--"}g
+        </Text>
       </View>
       <View style={styles.macroTrack}>
-        <View style={styles.macroFill} />
+        <View style={[styles.macroFill, { width: `${percent}%` }]} />
       </View>
     </View>
   );
+}
+
+function unitLabel(unit: string) {
+  const labels: Record<string, string> = {
+    g: "克",
+    ml: "毫升",
+    serving: "份",
+    bowl: "碗",
+    piece: "个",
+    cup: "杯",
+  };
+  return labels[unit] ?? unit;
 }
 
 function CenteredMessage({
@@ -308,7 +339,16 @@ const styles = StyleSheet.create({
   macroName: { color: "#0a0a0a", fontWeight: "800" },
   macroValue: { color: "#666666", fontWeight: "800" },
   macroTrack: { backgroundColor: "#dedee3", borderRadius: 999, height: 12, overflow: "hidden" },
-  macroFill: { backgroundColor: "#050505", borderRadius: 999, height: "100%", width: "0%" },
+  macroFill: { backgroundColor: "#050505", borderRadius: 999, height: "100%" },
+  foodLogItem: {
+    backgroundColor: "#f7f7f9",
+    borderRadius: 18,
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  foodLogTitle: { color: "#0a0a0a", fontSize: 15, fontWeight: "900" },
+  foodLogMeta: { color: "#666666", fontSize: 13, lineHeight: 20 },
   hint: { color: "#666666", fontSize: 14, lineHeight: 21 },
   advice: { color: "#666666", fontSize: 15, lineHeight: 24 },
   primaryButton: {

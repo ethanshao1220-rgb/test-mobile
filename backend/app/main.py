@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.database import Base, SessionLocal, engine
 from app.repositories import get_or_create_user, seed_foods
@@ -32,6 +33,11 @@ app.include_router(foods_router)
 @app.on_event("startup")
 def startup() -> None:
     Base.metadata.create_all(bind=engine)
+    if engine.dialect.name == "sqlite":
+        with engine.begin() as connection:
+            columns = {row[1] for row in connection.execute(text("PRAGMA table_info(foods)")).fetchall()}
+            if "unit_options" not in columns:
+                connection.execute(text("ALTER TABLE foods ADD COLUMN unit_options JSON"))
     with SessionLocal() as db:
         get_or_create_user(db)
         seed_foods(db)

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 Gender = Literal["male", "female"]
 GoalType = Literal["fat_loss", "muscle_gain", "maintain"]
-Unit = Literal["g", "ml", "serving"]
+Unit = Literal["g", "ml", "serving", "bowl", "piece", "cup"]
 Period = Literal["day", "week", "month"]
 
 
@@ -73,12 +73,19 @@ class PlanRead(PlanCreate):
     model_config = {"from_attributes": True}
 
 
+class FoodUnitOption(BaseModel):
+    unit: Unit
+    label: str
+    ratio: float = Field(gt=0)
+
+
 class FoodRead(BaseModel):
     id: str
     name: str
     category: str
     unit: Unit
     quantity: float
+    unit_options: list[FoodUnitOption]
     calories: float
     protein: float
     carbs: float
@@ -122,6 +129,9 @@ class NutritionSummary(BaseModel):
     protein: float
     carbs: float
     fat: float
+    protein_target: float
+    carbs_target: float
+    fat_target: float
 
 
 class DashboardToday(BaseModel):

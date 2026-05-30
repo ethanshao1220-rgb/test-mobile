@@ -13,10 +13,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { searchFoods } from "@/api/services";
-import type { ExerciseLogInput, Food, FoodLogInput } from "@/api/types";
-import { flushOutbox } from "@/offline/sync";
+import { getProfile, searchFoods } from "@/api/services";
+import type { ExerciseLogInput, Food, FoodLogInput, Unit } from "@/api/types";
 import { submitExerciseLogWithOffline, submitFoodLogWithOffline } from "@/offline/submitLogs";
+import { flushOutbox } from "@/offline/sync";
 import { useSyncState } from "@/offline/useSyncState";
 
 type RecordTab = "food" | "exercise";
@@ -27,23 +27,50 @@ type Feedback = {
   tone: FeedbackTone;
 };
 
+type ExercisePreset = {
+  key: string;
+  label: string;
+  met: number;
+};
+
+const exercisePresets: ExercisePreset[] = [
+  { key: "running", label: "跑步", met: 8.3 },
+  { key: "walking", label: "快走", met: 4.3 },
+  { key: "basketball", label: "篮球", met: 6.5 },
+  { key: "strength", label: "力量训练", met: 5.0 },
+];
+
 export default function RecordScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const syncState = useSyncState();
+  const profile = useQuery({ queryKey: ["profile"], queryFn: getProfile });
   const [tab, setTab] = useState<RecordTab>("food");
   const [keyword, setKeyword] = useState("");
-  const [amount, setAmount] = useState("100");
-  const [exerciseName, setExerciseName] = useState("跑步");
+  const [amount, setAmount] = useState("");
+  const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+  const [exerciseName, setExerciseName] = useState(exercisePresets[0].label);
   const [duration, setDuration] = useState("30");
-  const [burned, setBurned] = useState("250");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+
   const foods = useQuery({
     queryKey: ["foods", keyword],
     queryFn: () => searchFoods(keyword),
     enabled: keyword.trim().length > 0,
   });
+
+  const selectedFood = foods.data?.find((item) => item.id === selectedFoodId) ?? null;
+  const selectedUnitOption =
+    selectedFood?.unit_options.find((option) => option.unit === selectedUnit) ?? null;
+  const suggestedBurned = (() => {
+    const preset = exercisePresets.find((item) => item.label === exerciseName);
+    const weight = profile.data?.current_weight_kg;
+    const durationValue = Number(duration);
+    if (!preset || !weight || !Number.isFinite(durationValue) || durationValue <= 0) return "";
+    return String(estimateCalories(preset.met, weight, durationValue));
+  })();
 
   async function refreshAfterSubmit() {
     await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -84,30 +111,43 @@ export default function RecordScreen() {
     }
   }
 
-  function logFood(food: Food) {
+  function selectFood(food: Food) {
+    const defaultUnit = food.unit_options[0];
+    setSelectedFoodId(food.id);
+    setSelectedUnit(defaultUnit?.unit ?? food.unit);
+    setAmount(String(defaultUnit ? defaultUnit.ratio : food.quantity));
+    setFeedback({ text: `已选择 ${food.name}，请确认单位和数量后添加。`, tone: "info" });
+  }
+
+  function logFood() {
+    if (!selectedFood || !selectedUnitOption) {
+      setFeedback({ text: "请先选择一个食物。", tone: "error" });
+      return;
+    }
     const quantity = Number(amount);
     if (!Number.isFinite(quantity) || quantity <= 0) {
       setFeedback({ text: "请输入大于 0 的食物数量。", tone: "error" });
       return;
     }
-    const ratio = food.quantity ? quantity / food.quantity : 1;
+    const normalizedQuantity = quantity * selectedUnitOption.ratio;
+    const ratio = selectedFood.quantity ? normalizedQuantity / selectedFood.quantity : 1;
     void submitFoodLog({
-      food_name: food.name,
-      calories: Math.round(food.calories * ratio),
-      protein: Number((food.protein * ratio).toFixed(1)),
-      carbs: Number((food.carbs * ratio).toFixed(1)),
-      fat: Number((food.fat * ratio).toFixed(1)),
+      food_name: selectedFood.name,
+      calories: Math.round(selectedFood.calories * ratio),
+      protein: Number((selectedFood.protein * ratio).toFixed(1)),
+      carbs: Number((selectedFood.carbs * ratio).toFixed(1)),
+      fat: Number((selectedFood.fat * ratio).toFixed(1)),
       quantity,
-      unit: food.unit,
+      unit: selectedUnitOption.unit,
       timestamp: new Date().toISOString(),
     });
   }
 
   function logExercise() {
     const durationValue = Number(duration);
-    const burnedValue = Number(burned);
+    const burnedValue = Number(suggestedBurned);
     if (!exerciseName.trim()) {
-      setFeedback({ text: "请输入运动项目。", tone: "error" });
+      setFeedback({ text: "请选择运动项目。", tone: "error" });
       return;
     }
     if (!Number.isFinite(durationValue) || durationValue <= 0) {
@@ -194,9 +234,27 @@ export default function RecordScreen() {
                   value={keyword}
                 />
               </View>
-              {foods.isLoading ? <ActivityIndicator color="#111111" /> : null}
-              {foods.isError ? <Text style={styles.errorText}>搜索失败，请稍后重试。</Text> : null}
-              {foods.data?.length === 0 && keyword.trim() ? (
+
+              {!keyword.trim() ? (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.hint}>输入食物名称后开始搜索。</Text>
+                </View>
+              ) : null}
+
+              {foods.isLoading ? (
+                <View style={styles.stateCard}>
+                  <ActivityIndicator color="#111111" />
+                  <Text style={styles.hint}>正在搜索食物...</Text>
+                </View>
+              ) : null}
+
+              {foods.isError ? (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.errorText}>搜索失败，请稍后重试。</Text>
+                </View>
+              ) : null}
+
+              {foods.data?.length === 0 && keyword.trim() && !foods.isLoading && !foods.isError ? (
                 <View style={styles.emptyCard}>
                   <Text style={styles.hint}>没有找到匹配食物。</Text>
                   <Pressable
@@ -207,12 +265,19 @@ export default function RecordScreen() {
                   </Pressable>
                 </View>
               ) : null}
+
               <FlatList
                 data={foods.data ?? []}
                 keyExtractor={(item) => item.id}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
-                  <Pressable onPress={() => logFood(item)} style={styles.resultItem}>
+                  <Pressable
+                    onPress={() => selectFood(item)}
+                    style={[
+                      styles.resultItem,
+                      selectedFoodId === item.id ? styles.resultItemActive : null,
+                    ]}
+                  >
                     <View style={styles.foodEmoji}>
                       <Text style={styles.foodEmojiText}>{emojiForCategory(item.category)}</Text>
                     </View>
@@ -220,7 +285,7 @@ export default function RecordScreen() {
                       <Text style={styles.resultTitle}>{item.name}</Text>
                       <Text style={styles.hint}>
                         每 {item.quantity}
-                        {item.unit}：{item.calories} kcal · 蛋白 {item.protein}g · 碳水 {item.carbs}
+                        {unitLabel(item.unit)}：{item.calories} kcal · 蛋白 {item.protein}g · 碳水 {item.carbs}
                         g · 脂肪 {item.fat}g
                       </Text>
                     </View>
@@ -229,27 +294,85 @@ export default function RecordScreen() {
                 )}
                 ListFooterComponent={
                   <View style={styles.addBar}>
+                    {selectedFood ? (
+                      <View style={styles.unitRow}>
+                        {selectedFood.unit_options.map((option) => (
+                          <Pressable
+                            key={`${selectedFood.id}-${option.unit}`}
+                            onPress={() => {
+                              setSelectedUnit(option.unit);
+                              setAmount(String(option.ratio));
+                            }}
+                            style={[
+                              styles.unitButton,
+                              selectedUnit === option.unit && styles.unitButtonActive,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.unitButtonText,
+                                selectedUnit === option.unit && styles.unitButtonTextActive,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    ) : null}
+
                     <TextInput
                       keyboardType="decimal-pad"
                       onChangeText={setAmount}
                       style={styles.amountInput}
                       value={amount}
                     />
-                    <Text style={styles.hint}>请选择一个食物后添加。</Text>
+                    <Text style={styles.hint}>
+                      {selectedFood && selectedUnitOption
+                        ? `当前单位：${selectedUnitOption.label}，输入数量后点击“记录食物”。`
+                        : "请选择一个食物后添加。"}
+                    </Text>
+                    <Pressable
+                      disabled={!selectedFood || isSubmitting}
+                      onPress={logFood}
+                      style={[
+                        styles.primaryButton,
+                        (!selectedFood || isSubmitting) && styles.primaryButtonDisabled,
+                      ]}
+                    >
+                      <Text style={styles.primaryButtonText}>{isSubmitting ? "记录中" : "记录食物"}</Text>
+                    </Pressable>
                   </View>
                 }
               />
             </View>
           ) : (
             <View style={styles.cardPanel}>
-              <LabeledInput
-                label="运动项目"
-                value={exerciseName}
-                onChangeText={setExerciseName}
-                keyboardType="default"
-              />
+              <Text style={styles.label}>运动项目</Text>
+              <View style={styles.exercisePresetGrid}>
+                {exercisePresets.map((item) => (
+                  <Pressable
+                    key={item.key}
+                    onPress={() => setExerciseName(item.label)}
+                    style={[
+                      styles.exercisePreset,
+                      exerciseName === item.label && styles.exercisePresetActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.exercisePresetText,
+                        exerciseName === item.label && styles.exercisePresetTextActive,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
               <LabeledInput label="时长 分钟" value={duration} onChangeText={setDuration} />
-              <LabeledInput label="消耗 kcal" value={burned} onChangeText={setBurned} />
+              <ReadonlyField label="消耗 kcal" value={suggestedBurned || "--"} />
+              <Text style={styles.hint}>根据当前体重、运动项目和时长自动计算。</Text>
               <Pressable disabled={isSubmitting} onPress={logExercise} style={styles.primaryButton}>
                 <Text style={styles.primaryButtonText}>{isSubmitting ? "记录中" : "记录运动"}</Text>
               </Pressable>
@@ -271,6 +394,22 @@ function emojiForCategory(category: string) {
     补剂: "💊",
   };
   return map[category] ?? "🍽️";
+}
+
+function estimateCalories(met: number, weightKg: number, durationMin: number) {
+  return Math.round((met * 3.5 * weightKg * durationMin) / 200);
+}
+
+function unitLabel(unit: Unit) {
+  const labels: Record<Unit, string> = {
+    g: "克",
+    ml: "毫升",
+    serving: "份",
+    bowl: "碗",
+    piece: "个",
+    cup: "杯",
+  };
+  return labels[unit];
 }
 
 function LabeledInput({
@@ -297,6 +436,17 @@ function LabeledInput({
   );
 }
 
+function ReadonlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.readonlyField}>
+        <Text style={styles.readonlyValue}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   safeArea: { flex: 1, backgroundColor: "#f4f4f6" },
@@ -319,6 +469,13 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: "#0a0a0a" },
   panel: { flex: 1, gap: 14 },
   searchRow: { flexDirection: "row", gap: 12 },
+  stateCard: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderRadius: 22,
+    gap: 10,
+    padding: 18,
+  },
   input: {
     backgroundColor: "#f7f7f9",
     borderColor: "rgba(255,255,255,0.82)",
@@ -331,6 +488,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
+  readonlyField: {
+    alignItems: "flex-start",
+    backgroundColor: "#ececf1",
+    borderColor: "rgba(255,255,255,0.82)",
+    borderRadius: 18,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 48,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  readonlyValue: { color: "#0a0a0a", fontSize: 16, fontWeight: "900" },
   resultItem: {
     alignItems: "center",
     backgroundColor: "#ffffff",
@@ -346,6 +515,10 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 8, height: 10 },
   },
+  resultItemActive: {
+    borderColor: "#111113",
+    borderWidth: 1.5,
+  },
   foodEmoji: {
     alignItems: "center",
     backgroundColor: "#f0f0f3",
@@ -358,6 +531,19 @@ const styles = StyleSheet.create({
   resultCopy: { flex: 1 },
   resultTitle: { color: "#0a0a0a", fontSize: 16, fontWeight: "900" },
   category: { color: "#666666", fontSize: 12, fontWeight: "900" },
+  unitRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  unitButton: {
+    alignItems: "center",
+    backgroundColor: "#dedee3",
+    borderRadius: 999,
+    justifyContent: "center",
+    minHeight: 40,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  unitButtonActive: { backgroundColor: "#050505" },
+  unitButtonText: { color: "#666666", fontWeight: "900" },
+  unitButtonTextActive: { color: "#ffffff" },
   addBar: { gap: 10, paddingBottom: 20, paddingTop: 4 },
   amountInput: {
     backgroundColor: "#f7f7f9",
@@ -408,6 +594,20 @@ const styles = StyleSheet.create({
     shadowRadius: 32,
     shadowOffset: { width: 14, height: 18 },
   },
+  exercisePresetGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 4 },
+  exercisePreset: {
+    alignItems: "center",
+    backgroundColor: "#dedee3",
+    borderRadius: 999,
+    justifyContent: "center",
+    minHeight: 42,
+    minWidth: "47%",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  exercisePresetActive: { backgroundColor: "#050505" },
+  exercisePresetText: { color: "#666666", fontWeight: "900" },
+  exercisePresetTextActive: { color: "#ffffff" },
   field: { gap: 8 },
   label: { color: "#666666", fontSize: 13, fontWeight: "800" },
   primaryButton: {
@@ -418,5 +618,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     padding: 12,
   },
+  primaryButtonDisabled: { opacity: 0.45 },
   primaryButtonText: { color: "#fff", fontWeight: "900" },
 });

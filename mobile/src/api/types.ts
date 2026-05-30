@@ -1,4 +1,4 @@
-export type Unit = "g" | "ml" | "serving";
+export type Unit = "g" | "ml" | "serving" | "bowl" | "piece" | "cup";
 export type Gender = "male" | "female";
 export type GoalType = "fat_loss" | "muscle_gain" | "maintain";
 export type Period = "day" | "week" | "month";
@@ -55,6 +55,9 @@ export type NutritionSummary = {
   protein: number;
   carbs: number;
   fat: number;
+  protein_target: number;
+  carbs_target: number;
+  fat_target: number;
 };
 
 export type PlanSummary = {
@@ -67,6 +70,18 @@ export type PlanSummary = {
 };
 
 export type FoodLogInput = {
+  food_name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  quantity: number;
+  unit: Unit;
+  timestamp: string;
+};
+
+export type FoodLog = {
+  id: string;
   food_name: string;
   calories: number;
   protein: number;
@@ -91,8 +106,15 @@ export type Food = {
   category: string;
   unit: Unit;
   quantity: number;
+  unit_options: FoodUnitOption[];
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
+};
+
+export type FoodUnitOption = {
+  unit: Unit;
+  label: string;
+  ratio: number;
 };

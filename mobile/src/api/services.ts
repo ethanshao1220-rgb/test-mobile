@@ -4,6 +4,7 @@ import type {
   DashboardToday,
   ExerciseLogInput,
   Food,
+  FoodLog,
   FoodLogInput,
   Period,
   Plan,
@@ -29,6 +30,10 @@ export function getLatestBodyMetric(): Promise<BodyMetric | null> {
 
 export function searchFoods(keyword: string): Promise<Food[]> {
   return apiRequest<Food[]>(`/foods/search?keyword=${encodeURIComponent(keyword)}`);
+}
+
+export function getFoodLogs(targetDate: string): Promise<FoodLog[]> {
+  return apiRequest<FoodLog[]>(`/food-logs?target_date=${encodeURIComponent(targetDate)}`);
 }
 
 export function createFoodLog(input: FoodLogInput): Promise<unknown> {

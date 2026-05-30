@@ -2,14 +2,14 @@ from datetime import date, datetime
 from typing import Literal
 from uuid import uuid4
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, Date, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
 Gender = Literal["male", "female"]
 GoalType = Literal["fat_loss", "muscle_gain", "maintain"]
-Unit = Literal["g", "ml", "serving"]
+Unit = Literal["g", "ml", "serving", "bowl", "piece", "cup"]
 
 
 def new_id(prefix: str) -> str:
@@ -61,6 +61,7 @@ class Food(Base):
     category: Mapped[str] = mapped_column(String, nullable=False)
     unit: Mapped[str] = mapped_column(String, nullable=False)
     quantity: Mapped[float] = mapped_column(Float, nullable=False)
+    unit_options: Mapped[list[dict[str, str | float]]] = mapped_column(JSON, nullable=False, default=list)
     calories: Mapped[float] = mapped_column(Float, nullable=False)
     protein: Mapped[float] = mapped_column(Float, nullable=False)
     carbs: Mapped[float] = mapped_column(Float, nullable=False)
