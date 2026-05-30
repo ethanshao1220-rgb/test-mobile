@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  Alert,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -34,6 +35,10 @@ export default function PlanScreen() {
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
         queryClient.invalidateQueries({ queryKey: ["plans", "summary"] }),
       ]);
+      Alert.alert("保存成功", "计划目标已更新。");
+    },
+    onError: (error) => {
+      Alert.alert("保存失败", error instanceof Error ? error.message : "计划保存失败，请稍后重试。");
     },
   });
 
